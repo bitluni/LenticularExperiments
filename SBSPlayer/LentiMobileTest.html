@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' >
+    <style>
+		body
+		{
+			padding: 0;
+			margin: 0;
+			background: black;
+		}
+		canvas 
+		{
+			width: 1920px;
+			height: 1080px;
+			image-rendering: pixelated;
+			image-rendering: crisp-edges;
+		}
+    </style>
+	<script>
+		let processor = {
+			running: false,
+			time: -1,
+			pageLoaded: function() 
+			{
+				this.c1 = document.getElementById('c1');
+				this.c2 = document.getElementById('c2');
+				this.video = document.getElementById("video");
+				this.width = 1920;
+				this.height = 1080;
+				this.zoom(window.devicePixelRatio);
+				this.ctx1 = this.c1.getContext("2d");
+				this.ctx2 = this.c2.getContext("2d");
+				this.slice = this.ctx1.createImageData(1, this.height);
+				this.frame = this.ctx2.createImageData(this.width, this.height);
+				this.ctx2.putImageData(this.frame, 0, 0);
+				//document.write(window.devicePixelRatio);
+			},
+			
+			selectFile: function() {
+				this.file = document.getElementById("file").files[0];		
+				this.video.setAttribute('src',URL.createObjectURL(this.file));
+				this.video.load();
+				let self = this;
+				this.video.addEventListener("play", function() {
+					self.timerCallback();
+				}, false);
+			},
+						
+			timerCallback: function() {
+				let self = this;
+				if(this.time != video.currentTime)
+				{
+					this.time = video.currentTime;
+					this.computeFrame();
+				}
+				if(this.running)
+					setTimeout(function () {
+						self.timerCallback();
+					}, 5);
+			},
+			
+			dataLoaded:function () 
+			{
+			},
+			
+			zoom: function(scale)
+			{
+				this.scale = scale;
+				this.c1.width = Math.floor(this.width * this.scale);
+				this.c1.height = Math.floor(this.height * this.scale);
+				this.c2.width = Math.floor(this.width * this.scale);
+				this.c2.height = Math.floor(this.height * this.scale);
+			},
+						
+			computeFrame: function() {
+				let frame2 = this.frame;
+				this.ctx1.drawImage(this.video, 0, 0, this.width, this.height);
+				let step = 8;
+				let stepy = 2;
+				for(let l = 0; l < 120; l++)
+				{
+					let x = l * step * 2; 
+					let x2 = l * step;
+					let slice = this.ctx1.getImageData(l * step, 0, 1, this.height);
+					this.ctx2.putImageData(slice, l * step * 2 + step, 0);
+					this.ctx2.putImageData(slice, l * step * 2 + step + 1, 0);
+					this.ctx2.putImageData(slice, l * step * 2 + step + 2, 0);
+					let slice2 = this.ctx1.getImageData(l * step + 960, 0, 1, this.height);
+					this.ctx2.putImageData(slice2, l * step * 2, 0);
+					this.ctx2.putImageData(slice2, l * step * 2 + 1, 0);
+					this.ctx2.putImageData(slice2, l * step * 2 + 2, 0);
+				}
+				return;
+			},
+			
+			fullScreen: function(){
+				if(this.running)
+				{
+					this.running = false;
+					document.exitFullscreen(); 
+					this.video.pause();
+				}
+				else
+				{
+					this.running = true;
+					//document.getElementById('c2').requestFullscreen();
+					document.documentElement.requestFullscreen(); 
+					processor.timerCallback();
+					this.video.play();
+				}
+			}
+		  };
+	</script>
+  </head>
+
+  <body onload="processor.pageLoaded();">
+		<canvas style="display: none;" id="c1" width="480" height="540"></canvas><br>
+		<canvas style="position: fixed; left: 0; top: 0; z-index: -1;" id="c2" width="1920" height="1080"></canvas><br>
+		<button style="position: fixed; left: 10px; top: 10px;" onclick="processor.fullScreen();">bump</button><br>
+		<input style="position: fixed; left: 80px; top: 10px;"  id="file" type="file" onchange="processor.selectFile();">
+		<video id="video" src="" controls="true" onloadeddata="processor.dataLoaded();" style="display: none" loop/>
+		<!--input style="position: fixed; left: 200px; top: 10px;" type="range" min="10" max="4000" value="1920" id="zoom" onchange="processor.c2.width=this.value;"-->
+		<!--button onclick="document.getElementById('c2').requestFullscreen(); processor.timerCallback();">Fullscreen</button><br-->
+  </body>
+</html>
